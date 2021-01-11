@@ -1034,6 +1034,36 @@ func (db *DB) freepages() []pgid {
 	return fids
 }
 
+// auto-compaction feature
+func (db *DB) onCommitCompactionCheck() error {
+
+	if db == nil {
+		return nil
+	}
+	if db.CompactAfterCommitCount > 0 {
+		db.commitsSinceLastCompaction++
+		if db.commitsSinceLastCompaction >= db.CompactAfterCommitCount {
+			db.commitsSinceLastCompaction = 0
+			if err := db.CompactQuietly(); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// SuccessfulCompactionCount() returns the number of times
+// Compact has been executed successfully.
+func (db *DB) SuccessfulCompactionCount() int64 {
+	return atomic.LoadInt64(&db.successfulCompactionCount)
+}
+
+// CommitsSinceLastCompaction says how commits have happened
+// since last we compacted.
+func (db *DB) CommitsSinceLastCompaction() int64 {
+	return db.commitsSinceLastCompaction
+}
+
 // Options represents the options that can be set when opening a database.
 type Options struct {
 	// Timeout is the amount of time to wait to obtain a file lock.
