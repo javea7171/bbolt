@@ -35,6 +35,8 @@ const (
 	DefaultMaxBatchSize  int = 1000
 	DefaultMaxBatchDelay     = 10 * time.Millisecond
 	DefaultAllocSize         = 16 * 1024 * 1024
+	DefaultCompactBatchSizeBytes     = 4 * 1024 * 1024
+
 )
 
 // default page size for db is set to the OS page size.
@@ -119,6 +121,13 @@ type DB struct {
 	// needs to create new pages. This is done to amortize the cost
 	// of truncate() and fsync() when growing the data file.
 	AllocSize int
+	
+	// Auto-compact every this many Update() calls, if non-zero.
+	CompactAfterCommitCount int64
+
+	// DefaultCompactBatchSizeBytes controls the size of the
+	// Compact transactions.
+	CompactBatchSizeBytes int64
 
 	path     string
 	openFile func(string, int, os.FileMode) (*os.File, error)
@@ -155,6 +164,12 @@ type DB struct {
 	// Read only mode.
 	// When true, Update() and Begin(true) return ErrDatabaseReadOnly immediately.
 	readOnly bool
+	
+	// a copy of exactly what Open() options were supplied, so reOpen does the same.
+	origOptions                *Options
+	origOpenMode               os.FileMode
+	commitsSinceLastCompaction int64
+	successfulCompactionCount  int64
 }
 
 // Path returns the path to currently open database file.
@@ -183,6 +198,8 @@ func Open(path string, mode os.FileMode, options *Options) (*DB, error) {
 	if options == nil {
 		options = DefaultOptions
 	}
+	db.origOpenMode = mode
+	db.CompactAfterCommitCount = options.CompactAfterCommitCount
 	db.NoSync = options.NoSync
 	db.NoGrowSync = options.NoGrowSync
 	db.MmapFlags = options.MmapFlags
@@ -193,6 +210,8 @@ func Open(path string, mode os.FileMode, options *Options) (*DB, error) {
 	db.MaxBatchSize = DefaultMaxBatchSize
 	db.MaxBatchDelay = DefaultMaxBatchDelay
 	db.AllocSize = DefaultAllocSize
+	db.CompactBatchSizeBytes = DefaultCompactBatchSizeBytes
+
 
 	flag := os.O_RDWR
 	if options.ReadOnly {
