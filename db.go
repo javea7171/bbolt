@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 	"unsafe"
+	"sync/atomic"
+
 )
 
 // The largest step that can be taken when remapping the mmap.
