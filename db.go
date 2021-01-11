@@ -1113,6 +1113,12 @@ type Options struct {
 	// OpenFile is used to open files. It defaults to os.OpenFile. This option
 	// is useful for writing hermetic tests.
 	OpenFile func(string, int, os.FileMode) (*os.File, error)
+	
+	// CompactAfterCommitCount allows automatic compaction. If zero,
+	// no automatic compaction is done. If greater than zero, then
+	// after every CompactAfterCommitCount commits, we will invoke
+	// CompactQuietly().
+	CompactAfterCommitCount int64
 }
 
 // DefaultOptions represent the options used if nil options are passed into Open().
