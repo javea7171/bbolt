@@ -23,7 +23,7 @@ const (
 
 // DefaultFillPercent is the percentage that split pages are filled.
 // This value can be changed by setting Bucket.FillPercent.
-const DefaultFillPercent = 0.5
+const DefaultFillPercent = 0.9
 
 // Bucket represents a collection of key/value pairs inside the database.
 type Bucket struct {
