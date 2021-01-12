@@ -1,4 +1,4 @@
-module go.etcd.io/bbolt
+module github.com/javea7171/bbolt
 
 go 1.12
 
